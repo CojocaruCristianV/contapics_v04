@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import axios from "axios";
 
-// Set up Axios interceptor globally
+// Set up Axios interceptor globally 
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
