@@ -54,6 +54,5 @@ pipeline {
     post {
         success { echo 'Pipeline complet executat cu succes!' }
         failure { echo 'Pipeline eșuat :(' }
-        cleanWs()
     }
 }
