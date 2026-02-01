@@ -1,0 +1,28 @@
+---
+- name: Build and push Docker images to ECR
+  hosts: localhost
+  gather_facts: no
+  vars:
+    aws_region: eu-central-1
+    source_dir: ../..
+  tasks:
+    - name: Get AWS account ID
+      command: aws sts get-caller-identity --query Account --output text
+      register: account_id
+
+    - name: Authenticate Docker to ECR
+      shell: |
+        aws ecr get-login-password --region {{ aws_region }} | \
+        docker login --username AWS --password-stdin {{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com
+
+    - name: Build and push backend
+      shell: |
+        docker buildx build --platform linux/amd64 -t backend:latest {{ source_dir }}/backend
+        docker tag backend:latest {{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com/backend:latest
+        docker push {{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com/backend:latest
+
+    - name: Build and push frontend
+      shell: |
+        docker buildx build --platform linux/amd64 --build-arg BACKEND_URL=https://my-backend.example.com -t frontend:latest {{ source_dir }}/frontend
+        docker tag frontend:latest {{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com/frontend:latest
+        docker push {{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com/frontend:latest

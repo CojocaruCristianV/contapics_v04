@@ -1,0 +1,23 @@
+---
+- name: Deploy Contapics application
+  hosts: localhost
+  gather_facts: no
+  vars:
+    aws_region: eu-central-1
+  tasks:
+    - name: Get AWS account ID
+      command: aws sts get-caller-identity --query Account --output text
+      register: account_id
+
+    - name: Deploy application via Helm
+      kubernetes.core.helm:
+        name: contapics-app
+        chart_ref: "{{ playbook_dir }}/../../contapics-chart"
+        release_namespace: default
+        create_namespace: false
+        wait: true
+        values:
+          backend:
+            image: "{{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com/backend:latest"
+          frontend:
+            image: "{{ account_id.stdout }}.dkr.ecr.{{ aws_region }}.amazonaws.com/frontend:latest"
