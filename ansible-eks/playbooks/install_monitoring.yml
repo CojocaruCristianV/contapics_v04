@@ -1,0 +1,22 @@
+- name: Install kube-prometheus-stack (Prometheus + Grafana) on EKS
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Add Prometheus Community Helm repo
+      command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      args:
+        creates: ~/.cache/helm/repository/prometheus-community-index.yaml
+
+    - name: Update Helm repos
+      command: helm repo update
+
+    - name: Create monitoring namespace
+      command: kubectl create namespace monitoring
+      register: ns_result
+      failed_when: ns_result.rc != 0 and 'AlreadyExists' not in ns_result.stderr
+
+    - name: Install kube-prometheus-stack chart
+      command: >
+        helm upgrade --install prometheus-stack prometheus-community/kube-prometheus-stack
+        --namespace monitoring
+        --wait

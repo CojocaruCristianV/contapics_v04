@@ -1,0 +1,4 @@
+- import_playbook: cluster_setup.yml
+- import_playbook: install_monitoring.yml
+- import_playbook: push_images.yml
+- import_playbook: deploy_app.yml

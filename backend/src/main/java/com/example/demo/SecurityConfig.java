@@ -47,7 +47,7 @@ public class SecurityConfig {
         	.cors(Customizer.withDefaults())
             .securityMatcher("/**")
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/login", "/auth/logout", "/health").permitAll()
+                .requestMatchers("/auth/login", "/auth/logout", "/health","/actuator/**", "/actuator/health", "/actuator/prometheus").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService()), UsernamePasswordAuthenticationFilter.class);

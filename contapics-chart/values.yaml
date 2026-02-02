@@ -13,7 +13,14 @@ backend:
   port: 8080
   env:
     springProfile: docker
-    corsOrigin: "*"
+    corsOrigin: "http://frontend.contapics.local"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
 
 frontend:
   image: 601094796288.dkr.ecr.eu-central-1.amazonaws.com/frontend:latest
@@ -26,9 +33,20 @@ frontend:
     limits:
       cpu: 200m
       memory: 100Mi
-  backendUrl: /api
+  backendUrl: "http://backend.contapics.local/api"
 
 ingress:
   enabled: true
-  frontendHost: ""
-  backendHost: ""
+  frontendHost: frontend.contapics.local
+  backendHost: backend.contapics.local
+
+grafana:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+    hosts:
+      - grafana.contapics.local
+    path: /
