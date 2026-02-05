@@ -17,7 +17,7 @@ Aplicația Contapics a fost deployată pe **Amazon Web Services (AWS)** folosind
 | Serviciu AWS | Rol | Configurare |
 |--------------|-----|-------------|
 | **EKS** | Orchestrare containere | Cluster Kubernetes v1.30 |
-| **EC2** | Node-uri worker | 2x t3.small (scalabil 1-3) |
+| **EC2** | Node-uri worker | 3x t3.small (scalabil 1-4) |
 | **VPC** | Rețea izolată | CIDR 10.0.0.0/16, 3 AZ-uri |
 | **ECR** | Registry containere | 2 repository-uri (backend, frontend) |
 | **ALB** | Load Balancer | Application Load Balancer via Ingress |
@@ -29,21 +29,21 @@ Aplicația Contapics a fost deployată pe **Amazon Web Services (AWS)** folosind
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        UTILIZATORI                               │
-│                    (Administratori sistem)                       │
+│                        UTILIZATORI                              │
+│                    (Administratori sistem)                      │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     CONTAPICS SYSTEM                             │
-│                                                                  │
-│  Aplicație web pentru management utilizatori și companii         │
+│                     CONTAPICS SYSTEM                            │
+│                                                                 │
+│  Aplicație web pentru management utilizatori și companii        │
 │  Deployată pe AWS EKS                                           │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SISTEME EXTERNE                               │
+│                    SISTEME EXTERNE                              │
 │  - AWS IAM (autentificare)                                      │
 │  - AWS ECR (imagini container)                                  │
 │  - Prometheus/Grafana (monitorizare)                            │
@@ -54,22 +54,22 @@ Aplicația Contapics a fost deployată pe **Amazon Web Services (AWS)** folosind
 
 ```
 ┌────────────────────── AWS EKS Cluster ──────────────────────────┐
-│                                                                  │
+│                                                                 │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
-│  │   FRONTEND   │───▶│   BACKEND    │───▶│  POSTGRESQL  │       │
+│  │   FRONTEND   │--->│   BACKEND    │--->│  POSTGRESQL  │       │
 │  │   (Vue.js)   │    │ (Spring Boot)│    │   Database   │       │
 │  │   Nginx      │    │   Port 8080  │    │   Port 5432  │       │
 │  │   Port 80    │    │              │    │              │       │
 │  └──────────────┘    └──────────────┘    └──────────────┘       │
-│         │                   │                    │               │
-│         │                   │                    │               │
-│         ▼                   ▼                    ▼               │
+│         │                   │                    │              │
+│         │                   │                    │              │
+│         ▼                   ▼                    ▼              │
 │  ┌──────────────────────────────────────────────────────┐       │
-│  │              AWS Application Load Balancer            │       │
+│  │              AWS Application Load Balancer           │       │
 │  │   - frontend.contapics.local                         │       │
 │  │   - backend.contapics.local                          │       │
 │  └──────────────────────────────────────────────────────┘       │
-│                                                                  │
+│                                                                 │
 │  ┌──────────────────── Monitoring Stack ────────────────────┐   │
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐  │   │
 │  │  │ Prometheus │  │  Grafana   │  │ Postgres Exporter  │  │   │
@@ -97,7 +97,7 @@ Accesul la cluster este configurat pe mai multe niveluri:
 
 | Componentă | Scalare Curentă | Scalare Posibilă |
 |------------|-----------------|------------------|
-| **Node-uri EKS** | 3 noduri t3.small | Auto-scaling 1-3 noduri |
+| **Node-uri EKS** | 3 noduri t3.small | Auto-scaling 1-4 noduri |
 | **Backend Pods** | 1 replica | HPA până la 10 replici |
 | **Frontend Pods** | 1 replica | HPA până la 5 replici |
 | **PostgreSQL** | 1 replica | Read replicas cu AWS RDS |
@@ -120,6 +120,17 @@ Accesul la cluster este configurat pe mai multe niveluri:
 | **ECR** | <1GB storage | ~$0.10 |
 | **Data Transfer** | Estimat 10GB | ~$1 |
 | **TOTAL** | | **~$172/lună** |
+
+### 1.7 Costuri Actuale (Pricing)
+
+| Serviciu AWS | Cost 2 zile | Estimare lunară |
+|--------------|-------------|-----------------|
+| EKS          | $2.72       | $40.80          |
+| EC2 - Other  | $0.29       | $4.35           |
+| ELB          | $0.14       | $2.10           |
+| EC2 Compute  | $0.13       | $1.95           |
+| VPC          | $0.10       | $1.50           |
+| **Total**    | **$3.38**   | **$50.70**      |
 
 **Alternative de cost mai redus:**
 
@@ -165,8 +176,8 @@ module "eks" {
   eks_managed_node_groups = {
     default = {
       min_size     = 1
-      max_size     = 3
-      desired_size = 2
+      max_size     = 4
+      desired_size = 3
       instance_types = ["t3.small"]
     }
   }
@@ -180,7 +191,7 @@ module "eks" {
 ```
 contapics-chart/
 ├── Chart.yaml
-├── values.yaml              # Configurări default
+├── values.yaml
 └── templates/
     ├── backend-deployment.yaml
     ├── frontend-deployment.yaml
@@ -453,7 +464,7 @@ groups:
 
 ### 4.1 Ce a Mers Bine
 
-1. **Terraform pentru infrastructură** - Reproductibilitate 100%, infrastructura poate fi recreată în ~15 minute
+1. **Terraform pentru infrastructură** - Reproductibilitate 100%, infrastructura poate fi recreată în ~20 minute
 
 2. **Helm pentru aplicație** - Upgrade-uri și rollback-uri simple, configurare centralizată în `values.yaml`
 
@@ -525,15 +536,3 @@ jobs:
 | Migrare la RDS | - PostgreSQL pod, + Terraform RDS | Mare |
 | Multi-region deployment | x2 infrastructură, + Route53 | Foarte Mare |
 | Kubernetes 1.31 upgrade | Test compatibility, rolling update | Mic |
-
-### 4.5 Referințe
-
-- [C4 Model](https://c4model.com/) - Vizualizare arhitectură software
-- [CNCF Cloud Native Landscape](https://landscape.cncf.io/) - Ecosistem cloud-native
-- [AWS EKS Best Practices](https://aws.github.io/aws-eks-best-practices/) - Ghid AWS
-- [Prometheus Operator](https://prometheus-operator.dev/) - Documentație monitorizare
-
----
-
-**Document generat:** Februarie 2026  
-**Proiect:** Contapics Cloud Deployment
